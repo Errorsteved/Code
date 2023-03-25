@@ -1,6 +1,8 @@
 #include <iostream>
 #include <iomanip>
-
+#include <queue>
+#include <vector>
+#include <algorithm>
 using namespace std;
 struct PCB{
     char name[8];
@@ -13,9 +15,19 @@ struct PCB{
     bool finishornot;
 };
 
+struct Process {
+    string name; // 进程名
+    int arrival_time_rr; // 到达时间
+    int burst_time_rr; // CPU执行时间
+    int remaining_time_rr; // 剩余执行时间
+    int completion_time_rr; // 完成时间
+    int turnaround_time_rr; // 周转时间
+    float weighted_turnaround_time_rr; // 带权周转时间
+};
+
 float sum_turn_around_time=0.0;
 float sum_Weighted_turnaround_time=0.0;
-struct PCB pcb[4],tem,con_pcb[4];
+struct PCB pcb[4],tem,con_pcb[4],rr[4];
 void input();
 void sort();
 void output();
@@ -23,6 +35,11 @@ void fcfsoutput();
 void init();
 void SJF();
 void HRRF();
+void round_robin_scheduling(vector<Process> processes, int quantum);
+
+bool compare_arrival_time(Process a, Process b) {
+    return a.arrival_time_rr < b.arrival_time_rr;
+}
 
 int main(){
     cout<<"fcfs: "<<endl;
@@ -41,6 +58,12 @@ int main(){
     sort();
     HRRF();
     output();
+
+    cout<<"rr: "<<endl;
+    init();
+    vector<Process> processes = {{pcb[0].name, pcb[0].arrival_time, pcb[0].service_time, pcb[0].service_time}, {pcb[1].name, pcb[1].arrival_time, pcb[1].service_time, pcb[1].service_time}, {pcb[2].name, pcb[2].arrival_time, pcb[2].service_time, pcb[2].service_time},{pcb[3].name, pcb[3].arrival_time, pcb[3].service_time, pcb[3].service_time}};
+    int quantum = 1;
+    round_robin_scheduling(processes, quantum);
 
     return 0;
 }
@@ -78,8 +101,8 @@ void input(){
         cin>>con_pcb[i].service_time;
         cout<<"Please enter the start time: "<<endl;
         cin>>con_pcb[i].start_time;
-        cout<<"Please enter the finish time: "<<endl;
-        cin>>con_pcb[i].finish_time;
+        //cout<<"Please enter the finish time: "<<endl;
+        //cin>>con_pcb[i].finish_time;
         //cout<<"Please enter the turn around time: "<<endl;
         //cin>>pcb[i].turn_around_time;
     }
@@ -214,7 +237,7 @@ void HRRF(){
                     break;
                 }
             }
-        }//找到剩余作业最小响应比
+        }//找到剩余作业最高响应比
 
         //计算当前作业的完成时间，周转时间，带权周转时间
         if(pcb[index].arrival_time<=pcb[last_finishedPCB_index].finish_time)
@@ -238,4 +261,56 @@ void HRRF(){
 			sum_Weighted_turnaround_time+=pcb[j].Weighted_turnaround_time;
 		}
 
+}
+
+void round_robin_scheduling(vector<Process> processes, int quantum) {
+    sort(processes.begin(), processes.end(), compare_arrival_time);
+
+    queue<Process> q;
+    int current_time_rr = 0;
+    int i = 0;
+    float total_turnaround_time_rr = 0;
+    float total_weighted_turnaround_time_rr = 0;
+    int index_rr=0;
+
+    while (i < processes.size() || !q.empty()) {
+        if (q.empty()) {
+            q.push(processes[i]);
+            current_time_rr = processes[i].arrival_time_rr;
+            i++;
+        }
+
+        Process current_process = q.front();
+        q.pop();
+
+        if (current_process.remaining_time_rr <= quantum) {
+            current_time_rr += current_process.remaining_time_rr;
+            current_process.completion_time_rr = current_time_rr;
+            current_process.turnaround_time_rr = current_process.completion_time_rr - current_process.arrival_time_rr;
+            current_process.weighted_turnaround_time_rr = (float)current_process.turnaround_time_rr / current_process.burst_time_rr;
+            total_turnaround_time_rr += current_process.turnaround_time_rr;
+            total_weighted_turnaround_time_rr += current_process.weighted_turnaround_time_rr;
+        
+            cout << "Process " << current_process.name << " finished at time " << current_process.completion_time_rr << endl;
+            cout << "Turnaround time: " << current_process.turnaround_time_rr << endl;
+            cout << "Weighted turnaround time: " << current_process.weighted_turnaround_time_rr << endl;
+
+            while (i < processes.size() && processes[i].arrival_time_rr <= current_time_rr) {
+                q.push(processes[i]);
+                i++;
+            }
+        } else {
+            current_process.remaining_time_rr -= quantum;
+            current_time_rr += quantum;
+            q.push(current_process);
+
+            while (i < processes.size() && processes[i].arrival_time_rr <= current_time_rr) {
+                q.push(processes[i]);
+                i++;
+            }
+        }
+    }
+
+    cout << "Average turnaround time: " << total_turnaround_time_rr / processes.size() << endl;
+    cout << "Average weighted turnaround time: " << total_weighted_turnaround_time_rr / processes.size() << endl;
 }
