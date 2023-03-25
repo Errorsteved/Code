@@ -22,6 +22,7 @@ void output();
 void fcfsoutput();
 void init();
 void SJF();
+void HRRF();
 
 int main(){
     cout<<"fcfs: "<<endl;
@@ -35,10 +36,18 @@ int main(){
     SJF();
     output();
     
+    cout<<"hrrf: "<<endl;
+    init();
+    sort();
+    HRRF();
+    output();
+
     return 0;
 }
 
 void init(){
+    sum_turn_around_time=0.0;
+    sum_Weighted_turnaround_time=0.0;
     for(int i=0;i<4;i++){
         pcb[i]=con_pcb[i];
     }
@@ -89,6 +98,7 @@ void sort(){
 }
 
 void fcfsoutput(){
+    pcb[0].finish_time=pcb[0].service_time+pcb[0].arrival_time;
     pcb[0].turn_around_time=pcb[0].finish_time-pcb[0].arrival_time;
 	pcb[0].Weighted_turnaround_time=(float)pcb[0].turn_around_time/pcb[0].service_time;
 
@@ -179,3 +189,53 @@ void SJF()
 		}
 }
 
+void HRRF(){
+    pcb[0].finish_time=pcb[0].arrival_time+pcb[0].service_time;
+    pcb[0].turn_around_time=pcb[0].finish_time-pcb[0].arrival_time;
+    pcb[0].Weighted_turnaround_time=(float)pcb[0].turn_around_time/pcb[0].service_time;
+    int index=1;
+    int last_finishedPCB_index=0;
+    float response_ration[4];
+
+    for(int i=1;i<4;i++){
+        for(int j=1;j<4;j++){
+            if(pcb[last_finishedPCB_index].finish_time>=pcb[j].arrival_time){
+                response_ration[j]=1+(pcb[last_finishedPCB_index].finish_time-pcb[j].arrival_time)/pcb[j].service_time;
+            }
+            else{
+                response_ration[j]=1;
+            }
+        }//按顺序计算剩余作业响应比
+
+        for(int k=1;k<4;k++){
+            for(int a=1;a<4;a++){
+                if(response_ration[index]>response_ration[a]){
+                    index=a;
+                    break;
+                }
+            }
+        }//找到剩余作业最小响应比
+
+        //计算当前作业的完成时间，周转时间，带权周转时间
+        if(pcb[index].arrival_time<=pcb[last_finishedPCB_index].finish_time)
+		{
+			pcb[index].finish_time=pcb[last_finishedPCB_index].finish_time+pcb[index].service_time;
+			pcb[index].turn_around_time=pcb[index].finish_time-pcb[index].arrival_time;
+			pcb[index].Weighted_turnaround_time=(float)pcb[index].turn_around_time/pcb[index].service_time;
+		}
+		if(pcb[index].arrival_time>pcb[last_finishedPCB_index].finish_time)
+		{
+			pcb[index].finish_time=pcb[index].arrival_time+pcb[index].service_time;
+			pcb[index].turn_around_time=pcb[index].service_time;
+			pcb[index].Weighted_turnaround_time=(float)pcb[index].turn_around_time/pcb[index].service_time; 
+        }
+        last_finishedPCB_index=index;
+    }
+
+        for(int j=0;j<4;j++)
+		{
+			sum_turn_around_time+=pcb[j].turn_around_time;
+			sum_Weighted_turnaround_time+=pcb[j].Weighted_turnaround_time;
+		}
+
+}
