@@ -3,6 +3,7 @@
 #include <queue>
 #include <vector>
 #include <algorithm>
+#include <string.h>
 using namespace std;
 struct PCB{
     char name[8];
@@ -42,10 +43,11 @@ bool compare_arrival_time(Process a, Process b) {
 }
 
 int main(){
-    cout<<"fcfs: "<<endl;
+    
     input();
     init();
     sort();
+    cout<<"fcfs: "<<endl;
     fcfsoutput();
 
     cout<<"sjf: "<<endl;
@@ -73,6 +75,7 @@ void init(){
     sum_Weighted_turnaround_time=0.0;
     for(int i=0;i<4;i++){
         pcb[i]=con_pcb[i];
+        pcb[i].finishornot=false;
     }
     
 }
@@ -92,7 +95,7 @@ void output(){
 
 void input(){
     cout<<"-------Enter data of four process--------"<<endl;
-    for(int i=0;i<4;i++){
+    /*for(int i=0;i<4;i++){
         cout<<"Please enter the process name: "<<endl;
         cin>>con_pcb[i].name;
         cout<<"Please enter the arrival time: "<<endl;
@@ -101,11 +104,24 @@ void input(){
         cin>>con_pcb[i].service_time;
         cout<<"Please enter the start time: "<<endl;
         cin>>con_pcb[i].start_time;
-        //cout<<"Please enter the finish time: "<<endl;
-        //cin>>con_pcb[i].finish_time;
-        //cout<<"Please enter the turn around time: "<<endl;
-        //cin>>pcb[i].turn_around_time;
-    }
+    }*/
+
+    strcpy(con_pcb[0].name,"A");
+    con_pcb[0].arrival_time=0;
+    con_pcb[0].service_time=1;
+    con_pcb[0].start_time=0;
+    strcpy(con_pcb[1].name,"B");
+    con_pcb[1].arrival_time=1;
+    con_pcb[1].service_time=100;
+    con_pcb[1].start_time=1;
+    strcpy(con_pcb[2].name,"C");
+    con_pcb[2].arrival_time=2;
+    con_pcb[2].service_time=1;
+    con_pcb[2].start_time=101;
+    strcpy(con_pcb[3].name,"D");
+    con_pcb[3].arrival_time=3;
+    con_pcb[3].service_time=100;
+    con_pcb[3].start_time=102;
 }
 
 void sort(){
@@ -176,13 +192,14 @@ void SJF()
      //下面在剩下的进程中循环找出运行时间最小的进程，
      //计算它的完成时间、周转时间等，并设置为已访问。 
 	 //先找出没有访问过的运行时间最小的进程的下标
-    for(i=0;i<4;i++)
+    index=0;
+	min_time=pcb[1].service_time;
+
+    for(i=0;i<3;i++)
     {     
-	    index=-1;
-	    min_time=100;
-        for(j=0;j<4;j++)
+        for(j=1;j<4;j++)
 		{
-			if(min_time>pcb[j].service_time&&pcb[j].finishornot==false&&pcb[j].arrival_time<=pcb[last_finishedPCB_index].finish_time)
+			if(min_time>=pcb[j].service_time&&pcb[j].finishornot==false&&pcb[j].arrival_time<=pcb[last_finishedPCB_index].finish_time)
 			{
 				min_time=pcb[j].service_time;
 				index=j;
@@ -203,6 +220,7 @@ void SJF()
 		}
 		pcb[index].finishornot =true;
 		last_finishedPCB_index=index;
+        min_time=10000;
 	}  
 
     for(i=0;i<4;i++)
@@ -218,12 +236,13 @@ void HRRF(){
     pcb[0].Weighted_turnaround_time=(float)pcb[0].turn_around_time/pcb[0].service_time;
     int index=1;
     int last_finishedPCB_index=0;
-    float response_ration[4];
+    pcb[0].finishornot=true;
+    float response_ration[4]={0.0,0.0,0.0,0.0};
 
     for(int i=1;i<4;i++){
         for(int j=1;j<4;j++){
-            if(pcb[last_finishedPCB_index].finish_time>=pcb[j].arrival_time){
-                response_ration[j]=1+(pcb[last_finishedPCB_index].finish_time-pcb[j].arrival_time)/pcb[j].service_time;
+            if(pcb[last_finishedPCB_index].finish_time>=pcb[j].arrival_time&&pcb[j].finishornot==false){
+                response_ration[j]=1+float((pcb[last_finishedPCB_index].finish_time-pcb[j].arrival_time)/pcb[j].service_time);
             }
             else{
                 response_ration[j]=1;
@@ -232,7 +251,7 @@ void HRRF(){
 
         for(int k=1;k<4;k++){
             for(int a=1;a<4;a++){
-                if(response_ration[index]>response_ration[a]){
+                if(response_ration[index]<=response_ration[a]&&pcb[a].finishornot==false){
                     index=a;
                     break;
                 }
@@ -253,6 +272,7 @@ void HRRF(){
 			pcb[index].Weighted_turnaround_time=(float)pcb[index].turn_around_time/pcb[index].service_time; 
         }
         last_finishedPCB_index=index;
+        pcb[index].finishornot =true;
     }
 
         for(int j=0;j<4;j++)
